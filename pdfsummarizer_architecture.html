@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF AI Summarizer — Architecture</title>
+<style>
+  :root {
+    --bg: #0f1220;
+    --panel: #171b2e;
+    --line: #2b3252;
+    --text: #e8ecf8;
+    --muted: #9aa4c7;
+    --accent: #6c8cff;
+    --map: #1f6f5c;
+    --reduce: #6b3fa0;
+    --warn: #8a6d1f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 24px 64px;
+    background: radial-gradient(1200px 600px at 50% -10%, #1b2140, var(--bg));
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); margin: 0 0 32px; }
+  .grid { display: grid; gap: 16px; }
+  .row { display: flex; align-items: stretch; gap: 12px; flex-wrap: wrap; }
+  .card {
+    background: linear-gradient(180deg, #1b2036, var(--panel));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    flex: 1 1 200px;
+    min-width: 190px;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); }
+  .card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .card.map { border-color: #2f8f78; }
+  .card.map h3 { color: #5fd6b4; }
+  .card.reduce { border-color: #7b55b8; }
+  .card.reduce h3 { color: #b79bf0; }
+  .arrow { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 20px; min-width: 24px; }
+  .fan { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .pill {
+    display: inline-block; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--muted); font-size: 12px; margin: 2px 4px 2px 0;
+  }
+  .section { margin-top: 36px; }
+  .section > h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 0 0 14px; }
+  code { background: #0b0e18; border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; font-size: 12px; color: #c8d4ff; }
+  .note { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 8px; color: var(--muted); font-size: 12px; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+  footer { margin-top: 44px; color: #6f7aa3; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>PDF AI Summarizer — Architecture</h1>
+  <p class="sub">Streamlit UI · LangChain LCEL chains · Google Gemini map-reduce summarization</p>
+
+  <div class="section">
+    <h2>Request path</h2>
+    <div class="row">
+      <div class="card"><h3>Streamlit UI</h3><p><code>app.py</code><br>Sidebar settings, upload, progress, results, downloads.</p></div>
+      <div class="arrow">→</div>
+      <div class="card"><h3>PDF Processor</h3><p><code>pdf_processor.py</code><br>pypdf extraction, cleaning, tiktoken counting, chunking.</p></div>
+      <div class="arrow">→</div>
+      <div class="card"><h3>Summarizer</h3><p><code>summarizer.py</code><br>LCEL chains, concurrent map, reduce, analysis, quotes.</p></div>
+      <div class="arrow">→</div>
+      <div class="card"><h3>Gemini</h3><p><code>ChatGoogleGenerativeAI</code><br>Flash-lite / flash models, temperature 0.3.</p></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Map → reduce</h2>
+    <div class="grid">
+      <div class="card"><h3>Chunking</h3><p><code>chunk_text(text, max_tokens)</code><br>Sentence-aware packing; oversized sentences hard-split by tokens. No text lost, no overlap.</p></div>
+    </div>
+    <div class="arrow" style="padding:8px 0">↓</div>
+    <div class="fan">
+      <div class="card map"><h3>Map · chunk 1</h3><p><code>CHUNK_SUMMARY | llm | parser</code></p></div>
+      <div class="card map"><h3>Map · chunk 2</h3><p>batched with <code>max_concurrency=4</code></p></div>
+      <div class="card map"><h3>Map · chunk N</h3><p><code>return_exceptions=True</code><br>failures isolated per chunk</p></div>
+    </div>
+    <div class="arrow" style="padding:8px 0">↓</div>
+    <div class="card reduce"><h3>Reduce</h3><p><code>COMBINE</code> merges section summaries into one de-duplicated final summary. If it fails, joins sections as a fallback.</p></div>
+  </div>
+
+  <div class="section">
+    <h2>State and side channels</h2>
+    <div class="row">
+      <div class="card"><h3>Session state</h3><p>Stores processor, current file id and results, so download clicks never re-run the pipeline.</p></div>
+      <div class="card"><h3>Cache</h3><p><code>@st.cache_resource</code> keeps one Gemini client per model across reruns and sessions.</p></div>
+      <div class="card"><h3>Analysis</h3><p><code>ANALYSIS</code> on the first 3000 chars: type, themes, sections, audience, purpose.</p></div>
+      <div class="card"><h3>Quotes</h3><p><code>QUOTES</code> on the first 5000 chars; numbering and quote marks stripped, capped at 10.</p></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Outputs</h2>
+    <div class="row">
+      <div class="card"><h3>Summary text</h3><p>Styled per choice: brief, detailed, bullet points, executive.</p></div>
+      <div class="card"><h3>Statistics</h3><p>Per-chunk lengths, compression ratio, success rate, estimated runtime.</p></div>
+      <div class="card"><h3>Exports</h3><p>Plain-text report (<code>.txt</code>) and statistics table (<code>.csv</code>).</p></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Failure handling</h2>
+    <div class="note">
+      <span class="pill">no key → full-page stop</span>
+      <span class="pill">corrupt PDF → error banner</span>
+      <span class="pill">scanned PDF → ValueError</span>
+      <span class="pill">chunk failure → marked ⚠, excluded</span>
+      <span class="pill">combine failure → section fallback</span>
+      <span class="pill">analysis / quotes failure → warning only</span>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:#5fd6b4"></span>map step</span>
+      <span><span class="dot" style="background:#b79bf0"></span>reduce step</span>
+      <span><span class="dot" style="background:#6c8cff"></span>application layer</span>
+    </div>
+  </div>
+
+  <footer>See README.md for setup and WALKTHROUGH.md for a line-by-line explanation.</footer>
+</div>
+</body>
+</html>
