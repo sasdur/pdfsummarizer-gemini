@@ -1,0 +1,56 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 1020 >>
+stream
+BT
+/F1 12 Tf
+16 TL
+50 760 Td
+(Quarterly Research Brief: Retrieval-Augmented Generation in Practice) Tj T*
+T*
+(1. Background) Tj T*
+(Retrieval-augmented generation \(RAG\) pairs a language model with an external) Tj T*
+(knowledge base. The model retrieves relevant passages at query time instead of) Tj T*
+(relying only on parameters learned during training.) Tj T*
+T*
+(2. Findings) Tj T*
+(Teams that adopted RAG reported a 38 percent drop in unsupported answers.) Tj T*
+(The largest gains came from documents that change frequently, such as policies) Tj T*
+(and product manuals. Freshness mattered more than model size.) Tj T*
+T*
+(3. Recommendations) Tj T*
+(Start with a narrow corpus, measure answer groundedness, and add citations.) Tj T*
+(Review chunking strategy quarterly. Scanned documents still need OCR before) Tj T*
+(they can be indexed reliably.) Tj T*
+T*
+(4. Conclusion) Tj T*
+(RAG is not a replacement for evaluation. It is a way to keep answers tied to) Tj T*
+(sources that a reviewer can inspect.) Tj T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1383
+%%EOF
